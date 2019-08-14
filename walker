@@ -1,0 +1,193 @@
+# steps
+# go to website
+# grab drug name from CSV file, search for drug name
+# count number of links/hits
+# grab ANDA numbers, drug name, drug company
+# probably no labels, so don't worry too much about those
+# print drug name, ANDA number, and Company
+
+
+
+#i = 1
+#search = "//div/div/div/div/div[3]/div/table/tbody/tr[" + str(i) +"]"
+#print(search)
+
+drug_dict = {} # this is used to relate drug variants to a certain drug
+csv_num = 1 # CSV variable to we could write into our file from a function
+
+# def counter_for_drugs(oh): # this one will count the resulting drug names by rows when drug term is first searched
+#     num_of_drugs = driver.find_element_by_xpath("//div/div/div/div/div[3]/div/table/tbody/tr")
+#     # sees number of drugs listed in table
+#
+#     for i in num_of_drugs:
+#         search = "//div/div/div/div/div[3]/div/table/tbody/tr[" + str(i) +"]" # need this or else 'i' stays at 0
+#         driver.find_element_by_xpath(search).click()
+
+# with open('search_term.csv', 'r') as first_csv:
+#     first_reader = csv.reader(first_csv)
+#
+def writer(name_of_drug, co_name, app_letter, drug_app_num):
+
+    global csv_num # need to edit global variable
+    csv_num += 1
+    print(csv_num)
+
+    #f = open(filename, "w")
+    #headers = "Drug_Name, Company_Name, Application_Type, Application_Number, PDF_Link\n"
+    #f.write(headers)
+
+    #for i in range(csv_num):
+        #f.write('\n')
+
+    f.write(str(name_of_drug) + ",")        #
+    f.write(str(co_name) + ",")
+    f.write(str(app_letter) + ",")
+    f.write(str(drug_app_num) + ",")
+    f.write("\n")
+
+
+
+
+
+def magic_dict(i, num_in_curr):
+    drug_dict.update({ i : num_in_curr})
+    #['' + str(i) + ''] = num_in_curr
+
+    #print(drug_dict)
+
+    #for i in range(1. end_range)
+     #   dict[i] = num_in_curr
+
+
+
+
+def page_info_grabber(final_range): # this function is going to grab the info wee want on the page (NDA #, company, drug name)
+    for i in range(1, final_range):
+        y = drug_dict[i]
+        y_range = y + 1
+        for j in range(1, y_range):
+            driver.find_element_by_xpath('//*[@id="drugName' + str(i) + '"]/li[' + str(j) + ']/a').send_keys(Keys.CONTROL + Keys.ENTER)
+            driver.switch_to.window(driver.window_handles[1])
+            time.sleep(3)
+
+            try:
+                drug_app_num = driver.find_element_by_xpath("//span/span[2]").text
+                co_name = driver.find_element_by_xpath("//span/span[4]").text
+                name_of_drug = driver.find_element_by_xpath("//tbody/tr[1]/td[1]").text
+                app_type = driver.find_element_by_xpath('//*[@id="accordion"]/span/span[1]/strong').text
+                app_letter = app_type[0]
+
+                print(name_of_drug, co_name, app_letter, drug_app_num)
+                writer(name_of_drug, co_name, app_letter, drug_app_num)
+                #return drug_app_num, co_name, name_of_drug
+            except NoSuchElementException: #will bail out if nothing shows up for some reason, obvs avoiding some issues
+                result = 'none'
+                #return result
+
+            driver.close()
+            driver.switch_to.window(driver.window_handles[0])
+
+def search_results_counter(): # this one finds 1st results (names given after you type in active ingredient)
+    drug_results = driver.find_elements_by_xpath('//a[@title="Click to expand drug name"]')
+    #driver.find_elements_by_xpath('//a[@title="Click to expand drug name"]').click()
+    drug_num = len(drug_results)
+    # print(drug_num)
+    end_range = drug_num + 1
+
+    for i in range(1, end_range):
+        driver.find_element_by_xpath('//a[@href="#drugName' + str(i) + '"]').click()
+        time.sleep(1)
+
+    return drug_num
+
+def alt_ver_search_res(drug_num): # this one finds other versions of drugs with the same name but different ANDA/NDA.
+    # (post clock results). use this function while using original range.
+    # whatever the way to say, do this after you find the number of drugs first. while finding that info and clickling. (gives Y coordinate)
+    end_range = drug_num + 1
+
+    for i in range(1, end_range):
+        driver.find_element_by_xpath('//a[@href="#drugName' + str(i) + '"]')
+        num_in_current = (driver.find_elements_by_xpath('//*[@id="drugName' + str(i) + '"]/li'))  # this counts the versions of the same drugs
+        num_in_curr = len(num_in_current)
+
+        magic_dict(i, num_in_curr)
+
+        #print(num_in_curr)
+
+        #save for later?????
+        #red = driver.find_element_by_xpath('//*[@id="drugName' + str(i) + '"]/li[1]/a').send_keys(Keys.ENTER) # clicks on links to drugs
+        #red = '//*[@id="drugName' + str(i) + '"]/li[1]/a'
+        #print(red)
+
+
+
+def first_finder(practice):
+    driver.get("https://www.accessdata.fda.gov/scripts/cder/daf/")
+    time.sleep(2)
+    #driver.find_element_by_name("searchterm").send_keys(drug_name) # this will enter the name of the drug
+    driver.find_element_by_name("searchterm").send_keys(practice) # practice drug search
+    time.sleep(3)
+    driver.find_element_by_name("search").send_keys(Keys.ENTER)
+    time.sleep(4)
+    drug_num = search_results_counter()
+    #print(drug_num)
+    alt_ver_search_res(drug_num) # we created a dict, don't need a value returned
+
+    final_range = drug_num + 1
+    # this part gets 1st label and latest label from current drug url
+    try:
+        page_info_grabber(final_range)
+
+    except NoSuchElementException: # if nothing is found, will bail out and go to next drug name
+        result = 'none'
+        return result
+
+
+#### END OF IT
+
+from selenium import webdriver
+import time
+from selenium.webdriver.common.keys import Keys
+from selenium.common.exceptions import NoSuchElementException
+from selenium.webdriver.common.by import By
+import csv
+from itertools import islice
+
+driver = webdriver.Chrome(r"C:\Users\garcia\PycharmProjects\FDAlooker\drivers\chromedriver.exe")
+
+# print('//a[@href="drugName' + str(1) + '"]')
+
+
+practice = 'valproic acid' # practice search
+#first_link = first_finder(practice)
+
+
+with open('search_term.csv', 'r') as first_csv:
+    first_reader = csv.reader(first_csv)
+
+    filename = "valproic_acid.csv"
+    f = open(filename, "w")
+    headers = "Drug_Name, Company_Name, Application_Type, Application_Number, PDF_Link\n"
+    f.write(headers)
+    # headers = "Drug_Name, Company_Name, Application_Type, Application_Number, FDA_Listing, PDF_Link\n"
+    # f.write(headers)
+
+    #for line in islice(first_reader , start_index, stop_index):
+    # drug_name = line # creating variables to use in function calls
+
+    first_link = first_finder(practice)
+
+            #write the info to CSV file
+
+    # f.write(str(name_of_drug) + ",")
+    # f.write(str(co_name) + ",")
+    # f.write(str(app_letter) + ",")
+    # f.write(str(drug_app_num) + ",")
+    # f.write("\n")
+    f.close()
+#f.close()
+#
+# # end in quit() rightt?
+# driver.quit()
+# #write_function.close()
+# # f.close()
